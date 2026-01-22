@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: bitcoin-puzzle-pool
+    env: docker
+    region: oregon
+    plan: free
+    dockerfile: ./Dockerfile
+    dockerContext: ./
+    healthCheckPath: /api/v1/health
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: "8080"
