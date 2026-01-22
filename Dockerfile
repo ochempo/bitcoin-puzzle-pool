@@ -18,11 +18,13 @@ COPY . .
 ENV PORT 8080
 EXPOSE 8080
 
-# Simple health check for the container
+# Use the PORT env variable so Render (and other hosts) can set the port
+# Healthcheck uses the $PORT and the CMD expands $PORT via a shell
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget -qO- http://localhost:8080/api/v1/health || exit 1
+    CMD wget -qO- http://localhost:${PORT}/api/v1/health || exit 1
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app", "--workers", "2"]
+# Bind Gunicorn to the dynamic $PORT (use shell form so $PORT is expanded)
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app --workers 2"]
 FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt .
