@@ -1,5 +1,17 @@
 services:
   - type: web
+    name: "bitcoin-puzzle-pool"
+    env: docker
+    repo: "https://github.com/ochempo/bitcoin-puzzle-pool"
+    branch: main
+    plan: free
+    autoDeploy: true
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: "8080"
+    healthCheckPath: /api/v1/healthservices:
+  - type: web
     name: bitcoin-puzzle-pool
     env: docker
     region: oregon
