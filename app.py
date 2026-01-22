@@ -7,6 +7,32 @@ app = Flask(__name__)
 pool = PoolCoordinator()
 
 
+@app.route("/api/v1/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok", "uptime_seconds": int(time.time() - pool.start_time)})
+
+
+@app.route("/api/v1/initialize/<int:puzzle>", methods=["POST"])
+def init_puzzle(puzzle):
+    return jsonify(pool.initialize_puzzle(puzzle))
+
+
+@app.route("/api/v1/record/<int:puzzle>/<user_id>", methods=["POST"])
+def record(puzzle, user_id):
+    return jsonify(pool.record_solution(puzzle, user_id))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+import os
+import time
+from flask import Flask, jsonify, request
+from bitcoin_puzzle_pool_integrated import PoolCoordinator
+
+app = Flask(__name__)
+pool = PoolCoordinator()
+
+
 @app.route("/api/v1/health")
 def health():
     return jsonify({"status": "ok", "uptime_seconds": int(time.time() - pool.start_time)})
