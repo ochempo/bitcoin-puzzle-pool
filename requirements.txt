@@ -1,4 +1,6 @@
 Flask>=2.0
+gunicorn>=20.1.0
+base58>=2.1.1Flask>=2.0
 gunicorn
 base58base58==1.0.3
 flask==2.3.2
