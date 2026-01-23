@@ -123,11 +123,14 @@ class TransactionAnalyzer:
 
         return analysis
 
-    def follow_funding(self, depth: int = 1) -> Dict:
+    def follow_funding(self, depth: int = 1, save: bool = True) -> Dict:
         """Follow funding chain by fetching previous transactions up to `depth` levels.
 
-        Returns a dict {'txid': <txid>, 'chain': {prev_txid: tx_json, ...}}
-        and writes `transaction_<txid>_chain.json`.
+        Args:
+            depth: how many levels of previous transactions to follow
+            save: if True write `transaction_<txid>_chain.json`, otherwise only return the chain
+
+        Returns a dict `{'txid': <txid>, 'chain': {prev_txid: tx_json, ...}}`.
         """
         try:
             import requests
@@ -179,11 +182,12 @@ class TransactionAnalyzer:
 
         out = {"txid": self.txid, "chain": chain}
         out_path = f"transaction_{self.txid}_chain.json"
-        try:
-            with open(out_path, "w") as f:
-                json.dump(out, f, indent=2)
-        except Exception:
-            pass
+        if save:
+            try:
+                with open(out_path, "w") as f:
+                    json.dump(out, f, indent=2)
+            except Exception:
+                pass
 
         return out
 
