@@ -123,6 +123,74 @@ class TransactionAnalyzer:
 
         return analysis
 
+    def follow_funding(self, depth: int = 1, save: bool = True) -> Dict:
+        """Follow funding chain by fetching previous transactions up to `depth` levels.
+
+        Args:
+            depth: how many levels of previous transactions to follow
+            save: if True write `transaction_<txid>_chain.json`, otherwise only return the chain
+
+        Returns a dict `{'txid': <txid>, 'chain': {prev_txid: tx_json, ...}}`.
+        """
+        try:
+            import requests
+        except Exception:
+            return {"error": "requests required for follow_funding"}
+
+        chain = {}
+
+        def fetch_tx(txid: str) -> Optional[Dict]:
+            try:
+                r = requests.get(f"https://blockstream.info/api/tx/{txid}", timeout=15)
+                if r.status_code == 200:
+                    try:
+                        return r.json()
+                    except Exception:
+                        return {"raw": r.text}
+            except Exception:
+                return None
+
+        # ensure base tx is fetched
+        if not self.tx_json:
+            try:
+                self.fetch_transaction()
+            except Exception as e:
+                return {"error": str(e)}
+
+        to_visit = [self.txid]
+        visited = set()
+
+        for level in range(depth):
+            next_level = []
+            for tx in to_visit:
+                if tx in visited:
+                    continue
+                visited.add(tx)
+                tx_json = fetch_tx(tx)
+                if tx_json is None:
+                    continue
+                chain[tx] = tx_json
+
+                # find previous txids in vin
+                vins = tx_json.get("vin") or tx_json.get("inputs") or []
+                for vin in vins:
+                    if isinstance(vin, dict):
+                        prev_txid = vin.get("txid") or vin.get("txid_hex")
+                        if prev_txid and prev_txid not in visited:
+                            next_level.append(prev_txid)
+            to_visit = next_level
+
+        out = {"txid": self.txid, "chain": chain}
+        out_path = f"transaction_{self.txid}_chain.json"
+        if save:
+            try:
+                with open(out_path, "w") as f:
+                    json.dump(out, f, indent=2)
+            except Exception:
+                pass
+
+        return out
+
 
 if __name__ == "__main__":
     import sys

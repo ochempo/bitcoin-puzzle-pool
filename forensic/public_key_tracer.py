@@ -44,6 +44,57 @@ class PublicKeyTracer:
 
         return history
 
+    def trace_public_key_history(self, public_key_hex: str, depth: int = 1) -> Dict:
+        """Best-effort history for a public key: derive a P2PKH address and fetch recent txs."""
+        history = {"public_key": public_key_hex, "transactions": []}
+
+        try:
+            import requests
+            import hashlib
+            import base58
+        except Exception:
+            # fallback to minimal placeholder
+            out_path = f"public_key_{public_key_hex[:8]}_history.json"
+            try:
+                with open(out_path, "w") as f:
+                    json.dump(history, f, indent=2)
+            except Exception:
+                pass
+            return history
+
+        # derive P2PKH address from compressed/uncompressed public key
+        try:
+            pk_bytes = bytes.fromhex(public_key_hex)
+            sha = hashlib.sha256(pk_bytes).digest()
+            rip = hashlib.new('ripemd160', sha).digest()
+            version = b'\x00'
+            payload = version + rip
+            checksum = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
+            addr = base58.b58encode(payload + checksum).decode('ascii')
+        except Exception:
+            addr = None
+
+        if addr:
+            try:
+                r = requests.get(f"https://blockstream.info/api/address/{addr}/txs", timeout=15)
+                if r.status_code == 200:
+                    try:
+                        txs = r.json()
+                        history['transactions'] = txs[:max(0, depth)]
+                    except Exception:
+                        history['transactions'] = []
+            except Exception:
+                pass
+
+        out_path = f"public_key_{public_key_hex[:8]}_history.json"
+        try:
+            with open(out_path, "w") as f:
+                json.dump(history, f, indent=2)
+        except Exception:
+            pass
+
+        return history
+
 
 def trace_public_key_hex(public_key_hex: str) -> Dict:
     tracer = PublicKeyTracer()
